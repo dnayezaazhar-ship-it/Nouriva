@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nouriva
 
-## Getting Started
+Nouriva is a dependency-light Next.js 14 App Router MVP for gentle nutrition coaching. It keeps the existing Clerk authentication and Firebase seed system, with reusable types and business logic that can later be shared by an Expo client.
 
-First, run the development server:
+## Run locally
 
 ```bash
+npm install
+cp .env.local.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set the Clerk publishable/secret keys and Firebase client values in `.env.local`. Firebase Admin values are only needed when a signed-in user saves profile, food-log, weight, or coach data. Public routes and `next build` intentionally do not initialize Admin, so missing server credentials are reported as a runtime API error rather than a build failure.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Routes include a public landing page and pricing, Clerk `/sign-in` and `/sign-up`, plus the protected dashboard, onboarding, food library, logging, meal planner, AI coach structure, progress, grocery list, and reports.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Data and security
 
-## Learn More
+`seed/data.ts` remains the source of the curated food/recipe library. Run `npm run seed` after configuring Admin credentials. `firestore.rules` documents client-side isolation; server API routes additionally scope every user-owned read/write below `users/{clerkUserId}`. Never commit a service-account key.
 
-To learn more about Next.js, take a look at the following resources:
+The coach endpoint includes a deterministic local response structure so the flow works without an AI vendor. Replace the response function with a server-side provider call and add its secret as an unprefixed environment variable when ready. Subscription buttons are an integration seam for Stripe; no payment secret or client-side checkout is included in this MVP.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Validation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+```

@@ -1,0 +1,3 @@
+export type Food = { id: string; name: string; category: string; cuisine: string; tags: string[]; servingSize: string; calories: number; protein: number; carbohydrates: number; fat: number; fiber: number };
+export type FoodLog = Food & { foodId: string; foodName: string; mealType: string; servings: number; loggedAt: string; date: string; id: string };
+export type Meal = { id: string; date: string; mealType: "breakfast" | "lunch" | "dinner" | "snack"; itemType: "food" | "recipe"; itemId: string; itemName: string; servings: number; calories: number; protein: number; carbohydrates: number; fat: number; fiber: number };

@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Nouriva",
+    "slug": "nouriva-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "nouriva",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router",
+      "expo-asset",
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "android": {
+      "package": "com.nouriva.mobile"
+    },
+    "ios": {
+      "bundleIdentifier": "com.nouriva.mobile"
+    }
+  }
+}
