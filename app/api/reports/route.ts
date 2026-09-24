@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, apiError } from "@/lib/server-auth";
 import { nutritionTotals } from "@/lib/nutrition";
+import { canAccessPremium, getEntitlement } from "@/lib/entitlements";
 import type { FoodLog, WeightLog } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,8 @@ export async function GET(request: Request) {
     const days = raw === "30" ? 30 : raw === "1" ? 1 : 7;
     const since = new Date(); since.setUTCHours(0, 0, 0, 0); since.setUTCDate(since.getUTCDate() - (days - 1));
     const ref = db.collection("users").doc(userId);
+    const isPro = canAccessPremium(await getEntitlement(db, userId));
+    if (days === 30 && !isPro) return NextResponse.json({ message: "Advanced 30-day analytics are available with Nouriva+." }, { status: 403 });
     const [logsSnapshot, weightsSnapshot] = await Promise.all([
       ref.collection("foodLogs").where("loggedAt", ">=", since.toISOString()).orderBy("loggedAt", "asc").get(),
       ref.collection("weightLogs").orderBy("loggedAt", "asc").get(),
@@ -25,7 +28,7 @@ export async function GET(request: Request) {
       return { date: dateKey, ...nutritionTotals(dayLogs), meals: dayLogs.length };
     });
     const weights = weightsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as WeightLog);
-    return NextResponse.json({ range: days, days: daily, totals, meals: logs.length, weights });
+    return NextResponse.json({ range: days, days: daily, totals, meals: logs.length, weights, isPro });
   } catch (error) {
     const result = apiError(error);
     return NextResponse.json({ message: result.message }, { status: result.status });

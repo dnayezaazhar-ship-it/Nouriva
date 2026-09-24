@@ -27,17 +27,23 @@ export async function PUT(request: Request) {
 export async function POST(request: Request) {
   try {
     const { userId, db } = await requireUser(); const body = await request.json() as { weekStart?: unknown }; const week = body.weekStart ?? defaultWeek(); if (!validWeek(week)) return NextResponse.json({ message: "Invalid week." }, { status: 400 });
-    const plan = await db.collection("users").doc(userId).collection("mealPlans").doc(week).get(); const recipes = new Map(seedData.recipes.map((recipe) => [recipe.id, recipe])); const foods = new Map(seedData.foods.map((food) => [food.id, food])); const totals = new Map<string, { id: string; name: string; category: string; quantity: number; unit: string; checked: boolean }>();
-    for (const meal of (plan.data()?.meals ?? []) as { itemType: string; itemId: string; servings: number }[]) {
+    const groceryCategory = (category: string) => category === "Fruits" || category === "Vegetables" ? "produce" : category === "Pakistani / Desi" || category === "Indian" || category === "Chinese" || category === "Japanese" || category === "Korean" || category === "Mexican" ? "pantry" : category === "Beverages" ? "beverages" : "pantry";
+    const plan = await db.collection("users").doc(userId).collection("mealPlans").doc(week).get();
+    const meals = (plan.data()?.meals ?? []) as { itemType: string; itemId: string; servings: number }[];
+    if (!plan.exists || meals.length === 0) return NextResponse.json({ message: "Your active meal plan is empty. Add meals to your meal plan before generating a grocery list." }, { status: 400 });
+    const recipes = new Map(seedData.recipes.map((recipe) => [recipe.id, recipe])); const foods = new Map(seedData.foods.map((food) => [food.id, food])); const totals = new Map<string, { id: string; name: string; category: string; quantity: number; unit: string; checked: boolean }>();
+    for (const meal of meals) {
       if (meal.itemType === "food") {
         const food = foods.get(meal.itemId);
-        if (food) totals.set(food.id, { id: food.id, name: food.name, category: food.category === "fruit" || food.category === "vegetable" ? "produce" : food.category === "dairy" ? "dairy" : food.category === "protein" ? "protein" : "pantry", quantity: meal.servings, unit: food.servingSize, checked: false });
+        if (food) totals.set(food.id, { id: food.id, name: food.name, category: groceryCategory(food.category), quantity: meal.servings, unit: food.servingSize, checked: false });
         continue;
       }
       const recipe = recipes.get(meal.itemId); if (!recipe) continue;
-      for (const ingredient of recipe.ingredients) { const food = foods.get(ingredient.foodId); if (!food) continue; const existing = totals.get(food.id); if (existing) existing.quantity += ingredient.quantity * meal.servings; else totals.set(food.id, { id: food.id, name: food.name, category: food.category === "fruit" || food.category === "vegetable" ? "produce" : food.category === "dairy" ? "dairy" : food.category === "protein" ? "protein" : "pantry", quantity: ingredient.quantity * meal.servings, unit: ingredient.unit, checked: false }); }
+      for (const ingredient of recipe.ingredients) { const food = foods.get(ingredient.foodId); if (!food) continue; const existing = totals.get(food.id); if (existing) existing.quantity += ingredient.quantity * meal.servings; else totals.set(food.id, { id: food.id, name: food.name, category: groceryCategory(food.category), quantity: ingredient.quantity * meal.servings, unit: ingredient.unit, checked: false }); }
     }
-    const data = { weekStart: week, items: Array.from(totals.values()).map((item) => ({ ...item, quantity: `${Math.round(item.quantity * 100) / 100} ${item.unit}` })), updatedAt: new Date().toISOString() }; await listRef(db, userId, week).set(data); return NextResponse.json(data);
+    const items = Array.from(totals.values()).map((item) => ({ ...item, quantity: `${Math.round(item.quantity * 100) / 100} ${item.unit}` }));
+    if (items.length === 0) return NextResponse.json({ message: "Your active meal plan has no recognized ingredients to add to the grocery list." }, { status: 400 });
+    const data = { weekStart: week, items, updatedAt: new Date().toISOString() }; await listRef(db, userId, week).set(data); return NextResponse.json(data);
   } catch (error) { const result = apiError(error); return NextResponse.json({ message: result.message }, { status: result.status }); }
 }
 

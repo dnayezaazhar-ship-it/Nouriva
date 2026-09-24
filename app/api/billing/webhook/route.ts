@@ -35,8 +35,9 @@ export async function POST(request: Request) {
       : event.type === "customer.subscription.deleted" ? "canceled"
       : event.type === "invoice.payment_failed" ? "past_due"
       : String(object.status ?? "active");
+    const plan = metadata.plan === "together" ? "together" : "plus";
     const update = {
-      subscriptionPlan: status === "active" ? "plus" : "free",
+      subscriptionPlan: status === "active" ? plan : "free",
       subscriptionStatus: status,
       subscriptionUpdatedAt: new Date().toISOString(),
       ...(customer ? { stripeCustomerId: customer } : {}),

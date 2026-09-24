@@ -6,6 +6,8 @@ import type {
   Recipe,
   RecipeIngredient,
   SeedData,
+  Exercise,
+  Workout,
 } from "./types";
 
 export const seedId = (value: string): string =>
@@ -20,9 +22,177 @@ export const seedId = (value: string): string =>
 export const foodId = (name: string): string => `food_${seedId(name)}`;
 export const recipeId = (name: string): string => `recipe_${seedId(name)}`;
 
+const exerciseImages: Record<string, string> = {
+  "Burpees": "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1200&q=85",
+  "Squats": "https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=1200&q=85",
+  "Push-ups": "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?auto=format&fit=crop&w=1200&q=85",
+  "Mountain Climbers": "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&w=1200&q=85",
+  "Kettlebell Swings": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=85",
+  "Deadlifts": "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=1200&q=85",
+  "Pull-ups": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=85",
+  "Jump Squats": "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=85",
+  "Bulgarian Split Squats": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=1200&q=85",
+  "Walking Lunges": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1200&q=85",
+};
+const categoryImages: Record<string, string> = {
+  "Full Body": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=1600&q=85",
+  Strength: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=85",
+  Cardio: "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&w=1600&q=85",
+  "Upper Body": "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=1600&q=85",
+};
+const workoutImages: Record<string, string> = {
+  "Full Body Foundation": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=1600&q=85",
+  "Home Strength & Stability": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=85",
+  "Movement Reset": "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1600&q=85",
+  "Cardio & Core Flow": "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&w=1600&q=85",
+  "Upper Body Gym": "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=1600&q=85",
+  "Fat Burn Circuit": "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1600&q=85",
+  "Muscle Gain Strength": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=1600&q=85",
+};
+const exerciseImage = (name: string, category: string) =>
+  exerciseImages[name] ?? categoryImages[category] ?? categoryImages["Full Body"];
+const workoutImage = (name: string, category: string) => {
+  return workoutImages[name] ?? categoryImages[category] ?? categoryImages["Full Body"];
+};
+const exerciseRows: Array<[string, string, string, Exercise["difficulty"], string[], number, number, number | undefined, string[]]> = [
+  ["Bodyweight Squat", "Full Body", "legs", "beginner", [], 8, 3, 12, ["Stand with feet hip-width apart.", "Lower hips while keeping your chest lifted.", "Drive through your feet to stand."]],
+  ["Glute Bridge", "Lower Body", "glutes", "beginner", [], 6, 3, 15, ["Lie on your back with knees bent.", "Squeeze glutes and lift hips.", "Lower with control."]],
+  ["Reverse Lunge", "Lower Body", "legs", "beginner", [], 8, 3, 10, ["Step one foot back.", "Lower both knees with control.", "Push through the front foot."]],
+  ["Push-up", "Upper Body", "chest", "intermediate", [], 8, 3, 10, ["Brace your core in a straight line.", "Lower your chest toward the floor.", "Press away without locking your elbows."]],
+  ["Wall Push-up", "Beginner", "chest", "beginner", [], 6, 3, 12, ["Place hands on a wall.", "Bend elbows to bring chest closer.", "Press back to the start."]],
+  ["Plank", "Core", "core", "beginner", [], 5, 3, undefined, ["Hold a straight line from shoulders to heels.", "Brace your abdomen.", "Breathe steadily."]],
+  ["Side Plank", "Core", "obliques", "intermediate", [], 5, 3, undefined, ["Stack shoulders over elbow.", "Lift hips into a straight line.", "Hold while breathing calmly."]],
+  ["Mountain Climbers", "Cardio", "core", "intermediate", [], 8, 3, 20, ["Start in a high plank.", "Drive knees toward your chest alternately.", "Keep hips level."]],
+  ["Bird Dog", "Mobility", "core", "beginner", [], 6, 3, 10, ["Start on hands and knees.", "Extend opposite arm and leg.", "Return slowly and switch sides."]],
+  ["Dead Bug", "Core", "core", "beginner", [], 6, 3, 10, ["Lie on your back with arms up.", "Lower opposite arm and leg.", "Keep your lower back gently grounded."]],
+  ["Jumping Jacks", "Cardio", "full body", "beginner", [], 6, 3, 30, ["Stand tall with arms by your sides.", "Jump feet out as arms lift.", "Return softly."]],
+  ["High Knees", "Cardio", "legs", "beginner", [], 6, 3, 30, ["Stand tall.", "March or jog while lifting knees.", "Land softly and stay controlled."]],
+  ["Shoulder Taps", "Core", "shoulders", "beginner", [], 6, 3, 16, ["Start in a stable plank.", "Tap opposite shoulder.", "Minimize hip movement."]],
+  ["Forward Lunge", "Lower Body", "legs", "beginner", [], 8, 3, 10, ["Step forward.", "Lower until both knees bend comfortably.", "Return to standing."]],
+  ["Calf Raises", "Lower Body", "calves", "beginner", [], 5, 3, 15, ["Stand tall near support.", "Rise onto the balls of your feet.", "Lower slowly."]],
+  ["Hip Bridge", "Lower Body", "glutes", "beginner", [], 6, 3, 12, ["Brace your core.", "Lift hips and squeeze glutes.", "Pause before lowering."]],
+  ["Arm Circles", "Mobility", "shoulders", "beginner", [], 4, 2, 20, ["Stand relaxed.", "Make small circles with both arms.", "Gradually widen the circles."]],
+  ["Cat Cow", "Mobility", "spine", "beginner", [], 5, 2, 10, ["Start on hands and knees.", "Alternate rounding and extending your spine.", "Move with your breath."]],
+  ["Child's Pose", "Mobility", "full body", "beginner", [], 5, 2, undefined, ["Sit hips toward heels.", "Reach arms forward.", "Breathe into your back."]],
+  ["Step-ups", "Lower Body", "legs", "beginner", ["step"], 8, 3, 10, ["Place one foot on a stable step.", "Drive through that foot.", "Step down carefully."]],
+  ["Resistance Band Row", "Upper Body", "back", "beginner", ["resistance band"], 8, 3, 12, ["Anchor the band safely.", "Pull elbows back.", "Return with control."]],
+  ["Dumbbell Shoulder Press", "Strength", "shoulders", "intermediate", ["dumbbells"], 8, 3, 10, ["Hold weights at shoulder height.", "Press overhead.", "Lower without shrugging."]],
+  ["Dumbbell Deadlift", "Strength", "posterior chain", "intermediate", ["dumbbells"], 10, 3, 10, ["Hinge at the hips.", "Keep weights close.", "Stand by driving hips forward."]],
+  ["Goblet Squat", "Strength", "legs", "intermediate", ["dumbbell"], 10, 3, 10, ["Hold weight at your chest.", "Squat with knees tracking toes.", "Stand tall."]],
+  ["Dumbbell Chest Press", "Strength", "chest", "intermediate", ["dumbbells", "bench"], 10, 3, 10, ["Lie supported on a bench.", "Lower weights beside chest.", "Press upward."]],
+  ["Bicycle Crunch", "Core", "abdominals", "intermediate", [], 6, 3, 20, ["Lie on your back.", "Rotate opposite elbow toward knee.", "Move slowly and keep neck relaxed."]],
+  ["Russian Twist", "Core", "obliques", "intermediate", [], 6, 3, 20, ["Sit with knees bent.", "Rotate your torso side to side.", "Keep movement controlled."]],
+  ["Bear Crawl", "Full Body", "full body", "intermediate", [], 8, 3, 20, ["Start on hands and feet with knees hovering.", "Move opposite hand and foot.", "Keep your back steady."]],
+  ["Burpee", "Cardio", "full body", "advanced", [], 10, 3, 8, ["Squat and place hands down.", "Step or jump to plank.", "Return and stand tall."]],
+  ["Skater Steps", "Cardio", "legs", "beginner", [], 6, 3, 20, ["Step side to side.", "Reach opposite hand toward the floor.", "Stay light on your feet."]],
+  ["Standing Knee Drive", "Cardio", "core", "beginner", [], 5, 3, 20, ["Stand tall.", "Drive one knee up with opposite arm.", "Alternate smoothly."]],
+  ["Marching in Place", "Beginner", "full body", "beginner", [], 5, 3, 30, ["Stand tall with relaxed shoulders.", "March while lifting each knee comfortably.", "Keep a steady, easy rhythm."]],
+  ["Standing Knee Raises", "Core", "core", "beginner", [], 5, 3, 16, ["Stand tall near support if needed.", "Lift one knee toward your waist.", "Lower with control and alternate."]],
+  ["Donkey Kicks", "Lower Body", "glutes", "beginner", [], 6, 3, 12, ["Start on hands and knees.", "Press one foot upward without arching your back.", "Return slowly and switch sides."]],
+  ["Fire Hydrants", "Lower Body", "glutes", "beginner", [], 6, 3, 12, ["Start on hands and knees.", "Lift one knee out to the side.", "Keep your pelvis steady and switch sides."]],
+  ["Superman", "Strength", "back", "beginner", [], 6, 3, 10, ["Lie face down with arms extended.", "Lift arms and legs gently.", "Lower slowly without straining your neck."]],
+  ["Incline Push-up", "Upper Body", "chest", "beginner", ["bench or countertop"], 6, 3, 10, ["Place hands on a stable elevated surface.", "Lower your chest toward it.", "Press away while keeping your body aligned."]],
+  ["Bodyweight Good Morning", "Mobility", "posterior chain", "beginner", [], 6, 3, 12, ["Stand with feet hip-width apart.", "Hinge at the hips with a long spine.", "Squeeze glutes to return upright."]],
+  ["Wall Sit", "Lower Body", "legs", "beginner", ["wall"], 5, 3, undefined, ["Slide your back down a wall.", "Keep knees comfortable and aligned.", "Hold while breathing steadily."]],
+  ["Glute Kickback", "Lower Body", "glutes", "beginner", [], 6, 3, 12, ["Stand tall or hold support.", "Extend one leg behind you.", "Squeeze the glute and return with control."]],
+  ["Standing Side Leg Raise", "Mobility", "hips", "beginner", [], 5, 3, 12, ["Stand tall near support.", "Lift one leg to the side without leaning.", "Lower slowly and switch sides."]],
+  ["Deadlifts", "Strength", "back, hamstrings, glutes", "intermediate", ["barbell"], 10, 4, 8, ["Stand with the bar over your midfoot.", "Hinge at the hips and keep your spine neutral.", "Drive through the floor and stand tall."]],
+  ["Pull-ups", "Upper Body", "back, biceps", "advanced", ["pull-up bar"], 8, 4, 8, ["Grip the bar slightly wider than your shoulders.", "Brace your core and pull your chest toward the bar.", "Lower with control until your arms are extended."]],
+  ["Jump Squats", "Legs", "legs, glutes", "intermediate", [], 8, 4, 12, ["Stand with feet just outside hip width.", "Lower into a controlled squat.", "Drive through your feet to jump, then land softly."]],
+  ["Bulgarian Split Squats", "Legs", "legs, glutes", "advanced", ["bench"], 10, 3, 10, ["Place your rear foot on a stable bench.", "Lower your hips while keeping the front knee aligned.", "Drive through the front foot to stand."]],
+  ["Romanian Deadlifts", "Strength", "hamstrings, glutes", "intermediate", ["dumbbells"], 10, 4, 10, ["Hold weights close to your thighs.", "Hinge at the hips with a long spine.", "Drive your hips forward to stand tall."]],
+  ["Renegade Rows", "Upper Body", "back, core", "advanced", ["dumbbells"], 10, 3, 8, ["Start in a strong plank holding dumbbells.", "Row one weight toward your ribs without rotating.", "Lower with control and alternate sides."]],
+  ["Kettlebell Swings", "Cardio", "full body, glutes", "intermediate", ["kettlebell"], 8, 4, 15, ["Hike the kettlebell between your legs.", "Snap your hips forward to swing it to chest height.", "Let the bell fall back while keeping your spine neutral."]],
+  ["Walking Lunges", "Strength", "legs, glutes", "intermediate", [], 10, 3, 12, ["Stand tall with feet hip-width apart.", "Step forward and lower both knees with control.", "Push through the front foot and continue walking."]],
+];
+const highDemandExerciseNames = new Set(["Burpee", "Bodyweight Squat", "Deadlifts", "Pull-ups", "Push-up", "Mountain Climbers", "Jump Squats", "Bulgarian Split Squats", "Kettlebell Swings", "Walking Lunges"]);
+const librarySectionFor = (name: string): Exercise["librarySection"] => {
+  if (["Mountain Climbers", "Burpee", "Kettlebell Swings"].includes(name)) return "Fat Burn & Cardio";
+  if (["Bodyweight Squat", "Bulgarian Split Squats", "Walking Lunges"].includes(name)) return "Legs Exercises";
+  if (["Deadlifts", "Pull-ups"].includes(name)) return "Back Exercises";
+  if (name === "Push-up") return "Chest Exercises";
+  if (name === "Jump Squats") return "Weight Loss / Weight Gain routines";
+  return "Weight Loss / Weight Gain routines";
+};
+export const workoutCategories = ["Weight Loss", "Fat Burn", "Muscle Gain", "Strength", "Full Body", "Beginner", "Intermediate", "Advanced", "Home Workout", "No Equipment", "Core & Abs", "Lower Body", "Upper Body", "Cardio", "Mobility & Stretching"];
+export const exerciseCardGoals = (exercise: Exercise): string[] => {
+  const badges: string[] = [];
+  if (exercise.goals.includes("Weight Loss")) badges.push("Weight Loss");
+  if (exercise.goals.includes("Fat Burn")) badges.push("Fat Burn");
+  if (exercise.goals.includes("Muscle Gain")) badges.push("Muscle Gain");
+  if (exercise.goals.includes("Full Body")) badges.push("Full Body");
+  if (exercise.noEquipment && exercise.goals.includes("Muscle Gain")) badges.push("Home Workout");
+  else if (exercise.goals.includes("Muscle Gain") && exercise.goals.includes("Upper Body")) badges.push("Upper Body");
+  else if (exercise.goals.includes("Muscle Gain") && exercise.goals.includes("Lower Body")) badges.push("Lower Body");
+  return badges.slice(0, 3);
+};
+const exerciseOverrides: Record<string, { name?: string; category: string; muscleGroup: string; tags: string[]; equipment?: string[]; description: string }> = {
+  Burpee: { name: "Burpees", category: "Full Body", muscleGroup: "full body", tags: ["fat burn", "weight loss", "cardio"], description: "A full-body power movement that elevates the heart rate and builds conditioning." },
+  "Bodyweight Squat": { name: "Squats", category: "Lower Body", muscleGroup: "legs, glutes", tags: ["muscle building", "strength", "weight gain"], description: "A foundational lower-body movement for building leg strength, balance, and muscle." },
+  Deadlifts: { category: "Strength", muscleGroup: "back, hamstrings, glutes", tags: ["muscle building", "strength", "weight gain"], description: "A compound hip-hinge movement that develops posterior-chain strength and muscle." },
+  "Pull-ups": { category: "Upper Body", muscleGroup: "back, biceps", tags: ["muscle building", "strength", "upper body"], description: "A demanding bodyweight pull that builds back, arm, and grip strength." },
+  "Mountain Climbers": { category: "Core", muscleGroup: "core", tags: ["cardio", "fat burn", "weight loss"], description: "A fast-paced core and cardio movement for building work capacity." },
+  "Dumbbell Shoulder Press": { category: "Upper Body", muscleGroup: "shoulders", tags: ["upper body", "muscle building", "strength"], description: "A controlled pressing movement for shoulder strength and upper-body development." },
+  "Push-up": { name: "Push-ups", category: "Upper Body", muscleGroup: "chest, triceps", tags: ["upper body", "muscle building", "strength"], description: "A foundational upper-body press that trains the chest, triceps, and core." },
+  "Jump Squats": { category: "Legs", muscleGroup: "legs, glutes", tags: ["fat burn", "weight loss", "lower body"], description: "An explosive lower-body squat variation that builds power and raises the heart rate." },
+  "Bulgarian Split Squats": { category: "Legs", muscleGroup: "legs, glutes", tags: ["muscle building", "strength", "lower body"], description: "A unilateral strength movement that challenges leg stability and glute power." },
+  "Kettlebell Swings": { category: "Cardio", muscleGroup: "full body, glutes", tags: ["fat burn", "cardio", "weight loss"], description: "A rhythmic hip-power movement for full-body conditioning and glute strength." },
+  "Walking Lunges": { category: "Strength", muscleGroup: "legs, glutes", tags: ["strength", "fat burn", "lower body"], description: "A traveling lunge pattern that builds lower-body strength, balance, and stamina." },
+};
+const titleCase = (value: string) => value.replace(/\b\w/g, (character) => character.toUpperCase());
+const goalsForExercise = (category: string, muscleGroup: string, difficulty: Exercise["difficulty"], equipment: string[], tags: string[]) => {
+  const goals = new Set<string>([titleCase(difficulty)]);
+  if (category === "Full Body") goals.add("Full Body");
+  if (category === "Core") goals.add("Core & Abs");
+  if (category === "Lower Body" || category === "Legs") goals.add("Lower Body");
+  if (category === "Upper Body") goals.add("Upper Body");
+  if (category === "Cardio") goals.add("Cardio");
+  if (category === "Mobility") goals.add("Mobility & Stretching");
+  if (category === "Strength") goals.add("Strength");
+  if (tags.some((tag) => ["weight loss", "fat burn"].includes(tag))) goals.add("Weight Loss");
+  if (tags.includes("fat burn") || category === "Cardio") goals.add("Fat Burn");
+  if (tags.some((tag) => ["muscle building", "muscle gain", "strength"].includes(tag)) || category === "Strength") goals.add("Muscle Gain");
+  if (equipment.length === 0) {
+    goals.add("No Equipment");
+    goals.add("Home Workout");
+  }
+  return workoutCategories.filter((goal) => goals.has(goal));
+};
+export const exercises: Exercise[] = exerciseRows
+  .filter(([originalName]) => highDemandExerciseNames.has(originalName))
+  .map(([originalName, originalCategory, originalMuscleGroup, difficulty, equipment, duration, sets, reps, instructions]) => {
+    const override = exerciseOverrides[originalName];
+    const name = override?.name ?? originalName;
+    const category = override?.category ?? originalCategory;
+    const muscleGroup = override?.muscleGroup ?? originalMuscleGroup;
+    const finalEquipment = override?.equipment ?? equipment;
+    const tags = override?.tags ?? [category.toLowerCase(), muscleGroup, difficulty];
+    return {
+      id: `exercise_${seedId(name)}`, name, category, librarySection: librarySectionFor(originalName), goals: goalsForExercise(category, muscleGroup, difficulty, finalEquipment, tags), muscleGroup, difficulty, equipment: finalEquipment,
+      homeSuitable: finalEquipment.length === 0 || finalEquipment.every((item) => ["resistance band", "dumbbells", "dumbbell", "kettlebell", "pull-up bar", "step", "wall"].includes(item)),
+      noEquipment: finalEquipment.length === 0, duration, sets, reps, rest: 45,
+      description: override?.description ?? `A supportive ${category.toLowerCase()} movement for mobility, control, and recovery.`,
+      instructions, safetyNotes: ["Use a comfortable range of motion and stop if you feel sharp pain."],
+      image: exerciseImage(name, category), caloriesEstimate: duration * 7, tags,
+    };
+  });
+const workout = (id: string, name: string, category: string, difficulty: Workout["difficulty"], ids: string[], duration: number, goalIds = ["goal_balanced_nutrition", "goal_weight_maintenance", "goal_weight_loss"]) => ({
+  id, name, category, categories: workoutCategories.filter((item) => item === category || item === titleCase(difficulty) || (category === "Cardio" && item === "Fat Burn") || (category === "Strength" && item === "Muscle Gain")), difficulty, duration, image: workoutImage(name, category), equipment: [], description: "A thoughtful Nouriva session designed to build consistency and energy.", exercises: ids.map((exerciseId) => ({ exerciseId })), goalIds, tags: [category.toLowerCase(), difficulty],
+});
+export const workouts: Workout[] = [
+  workout("workout_full_body_foundation", "Full Body Foundation", "Full Body", "intermediate", ["exercise_burpees", "exercise_squats", "exercise_push-ups", "exercise_mountain-climbers", "exercise_kettlebell-swings"], 28),
+  workout("workout_home_strength", "Home Strength & Stability", "Strength", "intermediate", ["exercise_squats", "exercise_deadlifts", "exercise_bulgarian-split-squats", "exercise_walking-lunges", "exercise_pull-ups"], 32, ["goal_muscle_gain", "goal_weight_gain", "goal_weight_maintenance"]),
+  workout("workout_mobility_reset", "Movement Reset", "Full Body", "intermediate", ["exercise_squats", "exercise_walking-lunges", "exercise_mountain-climbers", "exercise_push-ups", "exercise_kettlebell-swings"], 22),
+  workout("workout_cardio_core", "Cardio & Core Flow", "Cardio", "intermediate", ["exercise_mountain-climbers", "exercise_kettlebell-swings", "exercise_burpees", "exercise_walking-lunges", "exercise_jump-squats"], 25, ["goal_weight_loss", "goal_fat_burn"]),
+  workout("workout_upper_body_gym", "Upper Body Gym", "Upper Body", "advanced", ["exercise_pull-ups", "exercise_push-ups", "exercise_bulgarian-split-squats", "exercise_mountain-climbers", "exercise_deadlifts"], 35, ["goal_muscle_gain", "goal_weight_gain"]),
+  workout("workout_fat_burn_circuit", "Fat Burn Circuit", "Cardio", "intermediate", ["exercise_burpees", "exercise_jump-squats", "exercise_mountain-climbers", "exercise_kettlebell-swings", "exercise_walking-lunges"], 24, ["goal_fat_burn", "goal_weight_loss"]),
+  workout("workout_muscle_gain_strength", "Muscle Gain Strength", "Strength", "advanced", ["exercise_bulgarian-split-squats", "exercise_deadlifts", "exercise_pull-ups", "exercise_squats", "exercise_push-ups"], 38, ["goal_muscle_gain", "goal_weight_gain", "goal_high_protein"]),
+];
+
+type LegacyFoodCategory = "fruit" | "vegetable" | "grain" | "legume" | "protein" | "dairy" | "nuts-seeds" | "condiment" | "snack" | "beverage";
 type FoodRow = [
   name: string,
-  category: Food["category"],
+  category: LegacyFoodCategory,
   cuisine: string,
   calories: number,
   protein: number,
@@ -30,6 +200,24 @@ type FoodRow = [
   fat: number,
   fiber: number,
 ];
+
+export const foodCategory = (category: string, cuisine: string): Food["category"] => {
+  const normalizedCuisine = cuisine.toLowerCase();
+  if (normalizedCuisine === "pakistani") return "Pakistani / Desi";
+  if (normalizedCuisine === "south asian") return "Indian";
+  if (normalizedCuisine === "japanese") return "Japanese";
+  if (normalizedCuisine === "korean") return "Korean";
+  if (normalizedCuisine === "mexican" || normalizedCuisine === "latin american") return "Mexican";
+  if (normalizedCuisine === "middle eastern" || normalizedCuisine === "north african") return "Middle Eastern";
+  if (normalizedCuisine === "mediterranean") return "Mediterranean";
+  if (normalizedCuisine === "east asian" || normalizedCuisine === "southeast asian") return "Chinese";
+  if (category === "fruit" || category === "Fruits") return "Fruits";
+  if (category === "vegetable" || category === "Vegetables") return "Vegetables";
+  if (category === "grain" || category === "Grains") return "Grains";
+  if (category === "snack" || category === "Snacks") return "Snacks";
+  if (category === "beverage" || category === "Beverages") return "Beverages";
+  return "Western / Continental";
+};
 
 const foodRows: FoodRow[] = [
   ["Apple", "fruit", "global", 95, 0.5, 25, 0.3, 4.4],
@@ -152,7 +340,7 @@ const foodRows: FoodRow[] = [
   ["Mozzarella", "dairy", "Italian", 85, 6, 1, 6, 0],
 ];
 
-const foodTags = (category: Food["category"]): string[] =>
+const foodTags = (category: LegacyFoodCategory): string[] =>
   ["fruit", "vegetable", "grain", "legume", "nuts-seeds"].includes(category)
     ? ["vegetarian"]
     : category === "dairy"
@@ -163,7 +351,7 @@ export const foods: Food[] = foodRows.map(
   ([name, category, cuisine, calories, protein, carbohydrates, fat, fiber]) => ({
     id: foodId(name),
     name,
-    category,
+    category: foodCategory(category, cuisine),
     cuisine,
     servingSize: "1 serving",
     calories,
@@ -302,6 +490,8 @@ export const nutritionGoals: NutritionGoal[] = [
   { id: "goal_weight_loss", name: "Weight Loss", description: "A flexible, portion-aware pattern centered on satisfying, nutrient-dense foods.", recommendedFocus: ["vegetables", "protein at meals", "fiber-rich carbohydrates"], defaultMealStructure: { breakfast: "protein and fruit", lunch: "vegetables and lean protein", snack: "fruit or yogurt", dinner: "vegetables, protein, and a measured grain" }, notes: "General wellness guidance only; individual energy needs vary." },
   { id: "goal_weight_maintenance", name: "Weight Maintenance", description: "A balanced everyday pattern designed to support steady energy and variety.", recommendedFocus: ["variety", "regular meals", "balanced portions"], defaultMealStructure: { breakfast: "balanced breakfast", lunch: "balanced lunch", snack: "optional nourishing snack", dinner: "balanced dinner" }, notes: "Adjust portions to personal needs, activity, and preferences." },
   { id: "goal_weight_gain", name: "Weight Gain", description: "A practical pattern that adds energy-dense, nourishing foods across the day.", recommendedFocus: ["energy-dense whole foods", "protein", "regular snacks"], defaultMealStructure: { breakfast: "substantial breakfast", lunch: "calorie-dense balanced lunch", snack: "nut or dairy-based snack", dinner: "balanced dinner with an extra side" }, notes: "Consider professional guidance when weight changes are difficult or unintentional." },
+  { id: "goal_fat_burn", name: "Fat Burn", description: "A sustainable movement-focused plan combining cardio, strength, and recovery.", recommendedFocus: ["regular movement", "cardio intervals", "strength training"], defaultMealStructure: { breakfast: "protein and fruit", lunch: "vegetables and lean protein", snack: "fruit or yogurt", dinner: "vegetables, protein, and whole grains" }, notes: "Fat loss varies by person; avoid extreme restriction and prioritize recovery." },
+  { id: "goal_muscle_gain", name: "Muscle Gain", description: "A strength-focused plan supported by adequate energy, protein, and recovery.", recommendedFocus: ["progressive strength", "protein at meals", "rest and recovery"], defaultMealStructure: { breakfast: "protein-rich breakfast", lunch: "protein, vegetables, and grains", snack: "protein-rich snack", dinner: "protein, vegetables, and a substantial side" }, notes: "Strength and body-composition changes take time; adapt training to your experience." },
   { id: "goal_high_protein", name: "High Protein", description: "A meal pattern that includes a meaningful protein source at each meal.", recommendedFocus: ["protein at each meal", "legumes and dairy", "hydration"], defaultMealStructure: { breakfast: "protein-rich breakfast", lunch: "protein and vegetables", snack: "protein-rich snack", dinner: "protein, vegetables, and whole grains" }, notes: "Protein needs vary by person; this is not medical or treatment advice." },
   { id: "goal_high_fiber", name: "High Fiber", description: "A gradual, varied approach featuring fruits, vegetables, legumes, nuts, seeds, and whole grains.", recommendedFocus: ["legumes", "whole grains", "fruits and vegetables"], defaultMealStructure: { breakfast: "whole grain and fruit", lunch: "legume and vegetable meal", snack: "fruit, nuts, or seeds", dinner: "vegetables, legumes, or whole grains" }, notes: "Increase fiber gradually and drink fluids according to personal needs." },
   { id: "goal_balanced_nutrition", name: "Balanced Nutrition", description: "A flexible global template for enjoying a broad range of foods and nutrients.", recommendedFocus: ["food variety", "colorful produce", "balanced portions"], defaultMealStructure: { breakfast: "protein, produce, and whole grain", lunch: "vegetables, protein, and grain", snack: "fruit, dairy, or nuts", dinner: "vegetables, protein, and grain" }, notes: "Seed values are approximate reference data, not medical-grade measurements." },
@@ -337,4 +527,4 @@ export const groceryItems: GroceryItem[] = groceryRows.map(([name, category, def
   tags: dietaryTags,
 }));
 
-export const seedData: SeedData = { foods, recipes, nutritionGoals, mealTemplates, groceryItems };
+export const seedData: SeedData = { foods, recipes, nutritionGoals, mealTemplates, groceryItems, exercises, workouts };

@@ -1,0 +1,5 @@
+import { Link, useLocalSearchParams } from "expo-router";
+import { Text } from "react-native";
+import { Card, Screen } from "@/src/components";
+import { styles } from "@/src/theme";
+export default function WorkoutComplete() { const params = useLocalSearchParams<{ workoutName?: string; duration?: string; exercises?: string; workouts?: string; streak?: string }>(); return <Screen centered><Text style={styles.eyebrow}>WORKOUT COMPLETE</Text><Text style={styles.heroTitle}>Workout complete 🎉</Text><Text style={styles.body}>{params.workoutName ?? "Your Nouriva session"} · {params.duration ?? "—"} min · {params.exercises ?? "—"} exercises completed</Text><Card><Text style={styles.sectionTitle}>Weekly progress</Text><Text style={styles.body}>{params.workouts ?? "0"} / 4 workouts</Text><Text style={styles.sectionTitle}>Current streak</Text><Text style={styles.body}>{params.streak ?? "0"} days</Text><Link href="/workout-progress" style={styles.button}><Text style={styles.buttonText}>View progress</Text></Link></Card><Link href="/(tabs)/workout" style={styles.action}>Done</Link></Screen>; }

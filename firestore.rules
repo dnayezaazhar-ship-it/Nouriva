@@ -9,8 +9,24 @@ service cloud.firestore {
     match /groceryItems/{itemId} { allow read: if true; allow write: if false; }
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      match /{subcollection}/{documentId} {
+      match /foodLogs/{documentId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /mealPlans/{documentId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /groceryLists/{documentId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /workoutCompletions/{documentId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /weightLogs/{documentId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      // Coach history is accessed through the authorized server route only.
+      match /coachMessages/{documentId} {
+        allow read, write: if false;
       }
     }
   }

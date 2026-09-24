@@ -19,6 +19,11 @@ export default function RootLayout() {
       <Stack.Screen name="auth" />
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="profile" />
+      <Stack.Screen name="health-history" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="workout/[id]" />
+      <Stack.Screen name="exercise/[id]" />
     </Stack>
   </ClerkProvider>;
 }

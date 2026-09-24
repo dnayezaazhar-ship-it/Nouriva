@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAdminFirestore } from "@/lib/firebase-admin-core";
 import type { Food, FoodCategory } from "@/types";
+import { foodCategory, seedData } from "@/seed/data";
 
-const categories: FoodCategory[] = ["fruit", "vegetable", "grain", "legume", "protein", "dairy", "nuts-seeds", "condiment", "snack", "beverage"];
+const categories: FoodCategory[] = ["Pakistani / Desi", "Indian", "Chinese", "Middle Eastern", "Mediterranean", "Western / Continental", "Japanese", "Korean", "Mexican", "Fruits", "Vegetables", "Grains", "Snacks", "Beverages"];
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Invalid food category." }, { status: 400 });
     }
     const snapshot = await getAdminFirestore().collection("foods").get();
-    const foods = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Food[];
+    const foods = (snapshot.empty ? seedData.foods : snapshot.docs.map((doc) => {
+      const data = doc.data() as Partial<Food> & { category?: string; cuisine?: string };
+      return { id: doc.id, ...data, category: foodCategory(data.category ?? "", data.cuisine ?? "") };
+    })) as Food[];
     const filtered = foods.filter((food) => {
-      const searchable = `${food.name} ${food.cuisine} ${food.tags.join(" ")}`.toLowerCase();
+      const searchable = `${food.name} ${food.cuisine} ${(food.tags ?? []).join(" ")}`.toLowerCase();
       return (!query || searchable.includes(query))
         && (!category || food.category === category)
         && (!cuisine || food.cuisine.toLowerCase() === cuisine);

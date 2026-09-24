@@ -1,6 +1,6 @@
 import type { DocumentData, Firestore } from "firebase-admin/firestore";
 import { seedData } from "./data";
-import type { Food, MealTemplate, Recipe, SeedData } from "./types";
+import type { Exercise, Food, MealTemplate, Recipe, SeedData, Workout } from "./types";
 
 export type CollectionSeedSummary = {
   inserted: number;
@@ -15,6 +15,8 @@ const collectionNames: (keyof SeedData)[] = [
   "nutritionGoals",
   "mealTemplates",
   "groceryItems",
+  "exercises",
+  "workouts",
 ];
 
 const isFiniteNonNegative = (value: unknown): value is number =>
@@ -56,6 +58,7 @@ export function validateSeedData(data: SeedData = seedData): void {
   const foods = new Set(data.foods.map((food) => food.id));
   const recipes = new Set(data.recipes.map((recipe) => recipe.id));
   const goals = new Set(data.nutritionGoals.map((goal) => goal.id));
+  const exercises = new Set(data.exercises.map((exercise) => exercise.id));
 
   for (const food of data.foods) {
     if (!food.servingSize || !food.commonServingSizes.length || !food.cuisine || !food.tags) {
@@ -88,6 +91,19 @@ export function validateSeedData(data: SeedData = seedData): void {
   for (const template of data.mealTemplates) {
     if (!goals.has(template.goalId)) {
       throw new Error(`mealTemplates/${template.id} references missing goal ${template.goalId}`);
+    }
+    for (const exercise of data.exercises) {
+      if (!exercise.instructions.length || !exercise.safetyNotes.length || exercise.duration <= 0 || exercise.sets <= 0) {
+        throw new Error(`exercises/${exercise.id} is missing valid training details`);
+      }
+    }
+    for (const workout of data.workouts) {
+      if (!workout.exercises.length || workout.duration <= 0 || !workout.goalIds.every((goalId) => goals.has(goalId))) {
+        throw new Error(`workouts/${workout.id} has invalid goals, duration, or exercise list`);
+      }
+      if (!workout.exercises.every((item) => exercises.has(item.exerciseId))) {
+        throw new Error(`workouts/${workout.id} references a missing exercise`);
+      }
     }
     for (const slots of [template.breakfast, template.lunch, template.snack, template.dinner]) {
       for (const slot of slots) {
@@ -149,6 +165,8 @@ export const expectedSeedCounts = {
   nutritionGoals: seedData.nutritionGoals.length,
   mealTemplates: seedData.mealTemplates.length,
   groceryItems: seedData.groceryItems.length,
+  exercises: seedData.exercises.length,
+  workouts: seedData.workouts.length,
 };
 
 export type { Food, MealTemplate, Recipe };

@@ -34,6 +34,8 @@ export async function verifySeed(
     nutritionGoals: data.nutritionGoals.length,
     mealTemplates: data.mealTemplates.length,
     groceryItems: data.groceryItems.length,
+    exercises: data.exercises.length,
+    workouts: data.workouts.length,
   };
   return {
     counts,

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireUser, apiError } from "@/lib/server-auth";
+import { requirePremium } from "@/lib/entitlements";
 import type { Food, MealPlan, MealType, PlannedMeal, PlannedMealItemType, Recipe } from "@/types";
+import { seedData } from "@/seed/data";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,7 @@ function nutrition(item: Food | Recipe, servings: number) {
 export async function GET(request: Request) {
   try {
     const { userId, db } = await requireUser();
+    await requirePremium(db, userId);
     const weekStart = new URL(request.url).searchParams.get("weekStart");
     if (!validWeek(weekStart)) return NextResponse.json({ message: "Use a Monday date in YYYY-MM-DD format." }, { status: 400 });
     const snapshot = await db.collection("users").doc(userId).collection("mealPlans").doc(weekStart).get();
@@ -53,6 +56,7 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { userId, db } = await requireUser();
+    await requirePremium(db, userId);
     const body = await request.json() as { weekStart?: unknown; meals?: unknown };
     if (!validWeek(body.weekStart) || !Array.isArray(body.meals) || body.meals.length > 28) {
       return NextResponse.json({ message: "A Monday week start and valid meal list are required." }, { status: 400 });
@@ -62,8 +66,8 @@ export async function PUT(request: Request) {
       db.collection("foods").get(),
       db.collection("recipes").get(),
     ]);
-    const foods = new Map(foodSnapshot.docs.map((doc) => [doc.id, { id: doc.id, ...doc.data() } as Food]));
-    const recipes = new Map(recipeSnapshot.docs.map((doc) => [doc.id, { id: doc.id, ...doc.data() } as Recipe]));
+    const foods = new Map((foodSnapshot.empty ? seedData.foods : foodSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Food)).map((food) => [food.id, food]));
+    const recipes = new Map((recipeSnapshot.empty ? seedData.recipes : recipeSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Recipe)).map((recipe) => [recipe.id, recipe]));
     const meals: PlannedMeal[] = [];
     const slots = new Set<string>();
     for (const raw of body.meals) {
@@ -110,6 +114,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { userId, db } = await requireUser();
+    await requirePremium(db, userId);
     const params = new URL(request.url).searchParams;
     const weekStart = params.get("weekStart");
     const mealId = params.get("mealId");

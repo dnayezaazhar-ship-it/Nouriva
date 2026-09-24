@@ -1,5 +1,5 @@
 import type { Food, MealType, Recipe } from "../seed/types";
-export type { Food, FoodCategory, MealType, Recipe } from "../seed/types";
+export type { Exercise, Food, FoodCategory, MealType, Recipe, Workout, WorkoutExercise } from "../seed/types";
 
 export type UserProfile = {
   id: string;
@@ -86,4 +86,30 @@ export type CoachMessage = {
   role: "user" | "coach";
   content: string;
   createdAt: string;
+  image?: string;
+  imageUrl?: string;
+  analysis?: VisionAnalysis;
+};
+
+export type VisionMealItem = {
+  name: string;
+  portion: string;
+  servings: number;
+  calories: number;
+  protein: number;
+  carbohydrates: number;
+  fat: number;
+  fiber: number;
+  confidence: "high" | "medium" | "low";
+  notes?: string;
+};
+
+export type VisionAnalysis = {
+  mode: "focused" | "breakdown";
+  logged?: boolean;
+  actionStatus?: "logged" | "declined";
+  summary: string;
+  answer?: string;
+  mealType: MealType;
+  items: VisionMealItem[];
 };

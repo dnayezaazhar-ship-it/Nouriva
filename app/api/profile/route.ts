@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireUser, apiError } from "@/lib/server-auth";
 import { seedData } from "@/seed/data";
+import { getEntitlement, initializeTrialForNewAccount } from "@/lib/entitlements";
 
 export async function GET() {
   try {
-    const { userId, db } = await requireUser();
+    const { userId, db } = await requireUser({ allowExpired: true });
     const snapshot = await db.collection("users").doc(userId).get();
-    return NextResponse.json(snapshot.exists ? snapshot.data() : { completedOnboarding: false });
+    const profile = snapshot.exists ? snapshot.data() : { completedOnboarding: false };
+    return NextResponse.json({ ...profile, entitlement: await getEntitlement(db, userId) });
   } catch (error) {
     const result = apiError(error);
     return NextResponse.json({ message: result.message }, { status: result.status });
@@ -15,7 +17,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { userId, db } = await requireUser();
+    const { userId, db } = await requireUser({ allowExpired: true });
+    const existingProfile = await db.collection("users").doc(userId).get();
     const body = await request.json();
     const age = Number(body.age);
     const height = Number(body.height);
@@ -23,7 +26,8 @@ export async function POST(request: Request) {
     const allowedGenders = ["Female", "Male", "Non-binary", "Prefer not to say"];
     const allowedActivities = ["sedentary", "light", "moderate", "high"];
     const allowedPreferences = ["none", "vegetarian", "vegan", "halal"];
-    const goalExists = seedData.nutritionGoals.some((goal) => goal.id === body.goalId);
+    const allowedGoals = ["goal_weight_loss", "goal_weight_maintenance", "goal_weight_gain", "goal_fat_burn", "goal_muscle_gain", "goal_high_protein", "goal_high_fiber", "goal_balanced_nutrition"];
+    const goalExists = allowedGoals.includes(body.goalId) && seedData.nutritionGoals.some((goal) => goal.id === body.goalId);
     if (
       typeof body.name !== "string" ||
       body.name.trim().length < 2 ||
@@ -61,7 +65,8 @@ export async function POST(request: Request) {
       completedOnboarding: true,
       updatedAt: new Date().toISOString(),
     };
-    await db.collection("users").doc(userId).set({ ...profile, userId, createdAt: new Date().toISOString() }, { merge: true });
+    if (!existingProfile.exists) await initializeTrialForNewAccount(db, userId);
+    await db.collection("users").doc(userId).set({ ...profile, userId, ...(existingProfile.exists ? {} : { createdAt: new Date().toISOString() }) }, { merge: true });
     return NextResponse.json(profile);
   } catch (error) {
     const result = apiError(error);
