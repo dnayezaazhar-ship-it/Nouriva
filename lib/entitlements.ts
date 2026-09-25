@@ -39,8 +39,10 @@ export async function initializeTrialForNewAccount(db: Firestore, userId: string
       return;
     }
 
-    // Do not overwrite a known subscription state for an existing account.
-    if (snapshot.exists && typeof data.subscriptionStatus === "string") return;
+    // An older initialization path could create a new user as expired without
+    // trial dates. Recover only that incomplete state; preserve real statuses.
+    const subscriptionStatus = typeof data.subscriptionStatus === "string" ? data.subscriptionStatus : null;
+    if (snapshot.exists && subscriptionStatus && !["trial", "expired"].includes(subscriptionStatus)) return;
 
     const accountCreatedAt = typeof data.createdAt === "string" && !Number.isNaN(Date.parse(data.createdAt))
       ? data.createdAt
