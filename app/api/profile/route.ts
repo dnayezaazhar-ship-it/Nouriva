@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, apiError } from "@/lib/server-auth";
 import { seedData } from "@/seed/data";
-import { getEntitlement, initializeTrialForNewAccount } from "@/lib/entitlements";
+import { getEntitlement } from "@/lib/entitlements";
 
 export async function GET() {
   try {
@@ -65,7 +65,6 @@ export async function POST(request: Request) {
       completedOnboarding: true,
       updatedAt: new Date().toISOString(),
     };
-    if (!existingProfile.exists) await initializeTrialForNewAccount(db, userId);
     await db.collection("users").doc(userId).set({ ...profile, userId, ...(existingProfile.exists ? {} : { createdAt: new Date().toISOString() }) }, { merge: true });
     return NextResponse.json(profile);
   } catch (error) {

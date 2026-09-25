@@ -1,11 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { getAdminFirestore } from "@/lib/firebase-admin-core";
-import { requirePremium } from "@/lib/entitlements";
+import { initializeTrialForNewAccount, requirePremium } from "@/lib/entitlements";
 
 export async function requireUser(options: { allowExpired?: boolean } = {}) {
   const { userId } = await auth();
   if (!userId) throw new Error("UNAUTHORIZED");
   const db = getAdminFirestore();
+  await initializeTrialForNewAccount(db, userId);
   if (!options.allowExpired) await requirePremium(db, userId);
   return { userId, db };
 }

@@ -10,11 +10,22 @@ export function hasFirebaseAdminCredentials() {
   );
 }
 
+function normalizePrivateKey(value: string | undefined) {
+  const key = value?.trim();
+  if (!key) return undefined;
+
+  const unquoted = key.startsWith("\"") && key.endsWith("\"")
+    ? key.slice(1, -1)
+    : key;
+
+  return unquoted.replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
+}
+
 /** Admin SDK is deliberately initialized on demand so public pages build without server credentials. */
 export function getFirebaseAdminApp(): App {
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
+  const privateKey = normalizePrivateKey(process.env.FIREBASE_ADMIN_PRIVATE_KEY);
   if (!hasFirebaseAdminCredentials()) {
     throw new Error(
       "Missing Firebase Admin credentials. Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, and FIREBASE_ADMIN_PRIVATE_KEY.",

@@ -11,61 +11,48 @@ export type Entitlement = {
 
 const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
 const PAID_STATUSES = new Set(["active", "trialing"]);
-const TRIAL_CLAIM_ID = "nouriva-free-trial";
 
 /**
- * Trial creation is deliberately separate from entitlement reads. This prevents
- * an existing account with legacy data from receiving a trial just because its
- * profile does not yet have entitlement fields.
+ * Trial creation is idempotent and scoped to the user. Existing users keep their
+ * stored trial dates and subscription state across logout/login.
  */
 export async function initializeTrialForNewAccount(db: Firestore, userId: string) {
   const userRef = db.collection("users").doc(userId);
-  const claimRef = db.collection("trialClaims").doc(TRIAL_CLAIM_ID);
   const now = new Date();
   const trialStartAt = now.toISOString();
-  const trialEndAt = new Date(now.getTime() + TRIAL_DURATION_MS).toISOString();
 
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(userRef);
-    if (snapshot.exists) return;
-    const claim = await transaction.get(claimRef);
-    const priorTrial = claim.exists
-      ? undefined
-      : await transaction.get(db.collection("users").where("trialStartAt", ">", "").limit(1));
-    if (!claim.exists && priorTrial && !priorTrial.empty) {
-      const priorData = priorTrial.docs[0].data();
-      transaction.set(claimRef, {
-        userId: priorTrial.docs[0].id,
-        claimedAt: priorData.trialStartAt,
-        trialStartAt: priorData.trialStartAt,
-        trialEndAt: priorData.trialEndAt,
-      });
-    }
-    if (!claim.exists && priorTrial?.empty) {
-      transaction.set(claimRef, {
-        userId,
-        claimedAt: trialStartAt,
-        trialStartAt,
-        trialEndAt,
-      });
+    const data = snapshot.data() ?? {};
+    const storedStartAt = typeof data.trialStartAt === "string" && !Number.isNaN(Date.parse(data.trialStartAt))
+      ? data.trialStartAt
+      : null;
+    const storedEndAt = typeof data.trialEndAt === "string" && !Number.isNaN(Date.parse(data.trialEndAt))
+      ? data.trialEndAt
+      : null;
+
+    if (storedStartAt && storedEndAt) return;
+    if (storedStartAt) {
       transaction.set(userRef, {
-        userId,
-        createdAt: trialStartAt,
-        trialStartAt,
-        trialEndAt,
-        subscriptionStatus: "trial",
-        subscriptionPlan: "free",
-      });
+        trialEndAt: new Date(Date.parse(storedStartAt) + TRIAL_DURATION_MS).toISOString(),
+      }, { merge: true });
       return;
     }
+
+    // Do not overwrite a known subscription state for an existing account.
+    if (snapshot.exists && typeof data.subscriptionStatus === "string") return;
+
+    const accountCreatedAt = typeof data.createdAt === "string" && !Number.isNaN(Date.parse(data.createdAt))
+      ? data.createdAt
+      : trialStartAt;
     transaction.set(userRef, {
       userId,
-      createdAt: trialStartAt,
-      trialStartAt: null,
-      trialEndAt: null,
-      subscriptionStatus: "expired",
+      createdAt: data.createdAt ?? accountCreatedAt,
+      trialStartAt: accountCreatedAt,
+      trialEndAt: new Date(Date.parse(accountCreatedAt) + TRIAL_DURATION_MS).toISOString(),
+      subscriptionStatus: "trial",
       subscriptionPlan: "free",
-    });
+    }, { merge: true });
   });
 }
 
@@ -75,7 +62,8 @@ export async function getEntitlement(db: Firestore, userId: string): Promise<Ent
   const data = snapshot.data() ?? {};
   const now = Date.now();
   const trialStartAt = typeof data.trialStartAt === "string" && !Number.isNaN(Date.parse(data.trialStartAt)) ? data.trialStartAt : null;
-  const trialEndAt = trialStartAt ? new Date(Date.parse(trialStartAt) + TRIAL_DURATION_MS).toISOString() : null;
+  const storedTrialEndAt = typeof data.trialEndAt === "string" && !Number.isNaN(Date.parse(data.trialEndAt)) ? data.trialEndAt : null;
+  const trialEndAt = storedTrialEndAt ?? (trialStartAt ? new Date(Date.parse(trialStartAt) + TRIAL_DURATION_MS).toISOString() : null);
   const storedStatus = String(data.subscriptionStatus ?? "");
   const subscriptionPlan = typeof data.subscriptionPlan === "string" ? data.subscriptionPlan : "free";
   const paid = PAID_STATUSES.has(storedStatus) && ["plus", "together"].includes(subscriptionPlan);
