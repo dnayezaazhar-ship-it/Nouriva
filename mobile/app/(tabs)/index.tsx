@@ -2,6 +2,7 @@ import { Link } from "expo-router";
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@clerk/expo";
+import { useEffect, useState } from "react";
 import { Card, EmptyState, Screen } from "@/src/components";
 import { colors, styles } from "@/src/theme";
 import { useApi } from "@/src/hooks";
@@ -10,14 +11,30 @@ import type { FoodLog, Workout } from "@/src/types";
 type Profile = { name?: string; goalId?: string; dietaryPreference?: string; activityLevel?: string; height?: number; weight?: number };
 type WorkoutData = { workouts: Workout[] };
 
+function getGreetingPeriod(): "Morning" | "Afternoon" | "Evening" {
+  const hour = new Date().getHours();
+  if (hour < 5 || hour >= 17) return "Evening";
+  if (hour < 12) return "Morning";
+  return "Afternoon";
+}
+
 const label = (value: string) => value.charAt(0).toUpperCase() + value.slice(1).replaceAll("_", " ");
 const mealOrder = ["breakfast", "lunch", "dinner", "snack"];
 
 export default function DashboardScreen() {
   const { user } = useUser();
+  const [greetingPeriod, setGreetingPeriod] = useState<"Morning" | "Afternoon" | "Evening">("Morning");
   const logs = useApi<FoodLog[]>("/api/logs");
   const { data: profile } = useApi<Profile>("/api/profile");
   const { data: workoutData } = useApi<WorkoutData>("/api/workouts");
+
+  useEffect(() => {
+    const updateGreeting = () => setGreetingPeriod(getGreetingPeriod());
+    updateGreeting();
+    const intervalId = setInterval(updateGreeting, 60_000);
+    return () => clearInterval(intervalId);
+  }, []);
+
   const totals = (logs.data ?? []).reduce((sum, log) => ({
     calories: sum.calories + log.calories,
     protein: sum.protein + log.protein,
@@ -28,9 +45,10 @@ export default function DashboardScreen() {
   const today = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date());
   const grouped = mealOrder.map((mealType) => ({ mealType, logs: (logs.data ?? []).filter((log) => log.mealType === mealType) })).filter((group) => group.logs.length > 0);
   const goalName = profile?.goalId?.replace(/^goal_/, "") ?? "";
+  const userName = user?.username?.trim() || profile?.name?.trim() || user?.firstName?.trim() || "there";
 
   return <Screen>
-    <View style={styles.screenHeader}><View><Text style={styles.eyebrow}>{today}</Text><Text style={styles.title}>Good morning{profile?.name ? `, ${profile.name}` : user?.firstName ? `, ${user.firstName}` : ""}.</Text></View><Link href="/log" style={styles.headerAction}>+ Log a meal</Link></View>
+    <View style={styles.screenHeader}><View><Text style={styles.eyebrow}>{today}</Text><Text style={styles.title}>Good {greetingPeriod}, {userName}!</Text></View><Link href="/log" style={styles.headerAction}>+ Log a meal</Link></View>
     <Text style={styles.body}>A clear, kind view of your nourishment today.</Text>
     {logs.loading && <EmptyState title="Loading your day..." body="Fetching your latest nutrition activity." />}
     {!!logs.error && <View><Text style={styles.error}>{logs.error}</Text><Text onPress={logs.refresh} style={styles.link}>Try again</Text></View>}

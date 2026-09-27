@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
 import { formatNumber, nutritionTotals } from "@/lib/nutrition";
 import type { FoodLog } from "@/types";
@@ -18,12 +19,28 @@ type Profile = {
 const mealOrder = ["breakfast", "lunch", "dinner", "snack"];
 const label = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
+function getGreetingPeriod(): "Morning" | "Afternoon" | "Evening" {
+  const hour = new Date().getHours();
+  if (hour < 5 || hour >= 17) return "Evening";
+  if (hour < 12) return "Morning";
+  return "Afternoon";
+}
+
 export default function DashboardPage() {
+  const { user } = useUser();
   const [logs, setLogs] = useState<FoodLog[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [greetingPeriod, setGreetingPeriod] = useState<"Morning" | "Afternoon" | "Evening">("Morning");
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const updateGreeting = () => setGreetingPeriod(getGreetingPeriod());
+    updateGreeting();
+    const intervalId = window.setInterval(updateGreeting, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const waterKey = `nouriva-water-${new Date().toISOString().slice(0, 10)}`;
@@ -43,6 +60,7 @@ export default function DashboardPage() {
   const grouped = useMemo(() => mealOrder.map((mealType) => ({ mealType, logs: logs.filter((log) => log.mealType === mealType) })), [logs]);
   const today = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date());
   const goalName = profile?.goalId?.replace(/^goal_/, "").replaceAll("_", " ") ?? "";
+  const userName = user?.username?.trim() || profile?.name?.trim() || user?.firstName?.trim() || "there";
   function updateWater(value: number) {
     const next = Math.max(0, Math.min(8, value));
     setWaterGlasses(next);
@@ -50,7 +68,7 @@ export default function DashboardPage() {
   }
 
   return <div className="page-wrap">
-    <div className="page-heading"><div><div className="eyebrow">{today}</div><h1>Good morning{profile?.name ? `, ${profile.name}` : ""}.</h1><p>A clear, kind view of your nourishment today.</p></div><Link href="/log" className="button button-primary">+ Log a meal</Link></div>
+    <div className="page-heading"><div><div className="eyebrow">{today}</div><h1>Good {greetingPeriod}, {userName}!</h1><p>A clear, kind view of your nourishment today.</p></div><Link href="/log" className="button button-primary">+ Log a meal</Link></div>
     {error && <div className="error-box" role="alert">{error}</div>}
     {loading ? <div className="app-card loading-state">Loading your dashboard…</div> : <>
       <div className="stats-grid">
