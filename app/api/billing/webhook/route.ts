@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { getAdminFirestore } from "@/lib/firebase-admin-core";
+import { missingStripeConfiguration, STRIPE_CONNECT_ACCOUNT_ID } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
@@ -15,11 +16,23 @@ function signatureValid(payload: string, signature: string, secret: string) {
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const signature = request.headers.get("stripe-signature");
-  if (!secret || !signature) return NextResponse.json({ message: "Stripe webhook is not configured." }, { status: 503 });
+  const missing = missingStripeConfiguration();
+  if (missing.length) {
+    return NextResponse.json({
+      message: `Stripe webhook is not configured. Set ${missing.join(", ")} in the server environment (for local development, add them to .env.local).`,
+      missingVariables: missing,
+    }, { status: 503 });
+  }
+  if (!secret || !signature) {
+    return NextResponse.json({ message: "Stripe webhook is missing its signing secret or Stripe-Signature header." }, { status: 400 });
+  }
   const payload = await request.text();
   if (!signatureValid(payload, signature, secret)) return NextResponse.json({ message: "Invalid Stripe signature." }, { status: 400 });
   try {
-    const event = JSON.parse(payload) as { type?: string; data?: { object?: Record<string, unknown> } };
+    const event = JSON.parse(payload) as { type?: string; account?: string; data?: { object?: Record<string, unknown> } };
+    if (event.account && event.account !== STRIPE_CONNECT_ACCOUNT_ID) {
+      return NextResponse.json({ message: "Webhook event belongs to a different connected account." }, { status: 400 });
+    }
     const object = event.data?.object ?? {};
     const metadata = (object.metadata ?? {}) as Record<string, unknown>;
     const customer = typeof object.customer === "string" ? object.customer : "";
